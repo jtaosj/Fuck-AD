@@ -1,29 +1,28 @@
 package com.hujiayucc.hook.hooker.app
 
-import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.hujiayucc.hook.annotation.Run
-import com.hujiayucc.hook.hooker.util.Base
-import de.robv.android.xposed.XposedHelpers
+import com.hujiayucc.hook.hooker.util.Hooker
+import io.github.libxposed.api.XposedModuleInterface
 
 @Run(
     appName = "红果免费短剧",
     packageName = "com.phoenix.read",
     action = "会员、广告"
 )
-object HGMFDJ : Base() {
-    override fun onStart() {
+object HGMFDJ : Hooker() {
+    override fun XposedModuleInterface.PackageReadyParam.onPackageReady() {
         "com.dragon.read.user.model.VipInfoModel".toClass()
-            .resolve().constructor().build().forEach { constructor ->
+            .constructor()?.forEach { constructor ->
                 constructor.hook {
                     after {
-                        XposedHelpers.setObjectField(instance, "expireTime", "4102444799")
-                        XposedHelpers.setObjectField(instance, "isVip", "1")
-                        XposedHelpers.setObjectField(instance, "leftTime", "1")
-                        XposedHelpers.setBooleanField(instance, "isAutoCharge", true)
-                        XposedHelpers.setBooleanField(instance, "isUnionVip", true)
-                        XposedHelpers.setIntField(instance, "unionSource", 1)
-                        XposedHelpers.setBooleanField(instance, "isAdVip", true)
-                        XposedHelpers.setObjectField(instance, "subType", args[7])
+                        setField(instance, "expireTime", "4102444799")
+                        setField(instance, "isVip", "1")
+                        setField(instance, "leftTime", "1")
+                        setField(instance, "isAutoCharge", true)
+                        setField(instance, "isUnionVip", true)
+                        setField(instance, "unionSource", 1)
+                        setField(instance, "isAdVip", true)
+                        setField(instance, "subType", args[7])
                     }
                 }
             }

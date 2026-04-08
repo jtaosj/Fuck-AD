@@ -39,7 +39,6 @@
     <!-- Menu -->
     <string name="menu_minimize">Minimize</string>
     <string name="menu_click_info">Print Click Info</string>
-    <string name="menu_dump_dex">Dump dex</string>
     <string name="menu_stack_track">Print click stack track</string>
     <string name="menu_logout">Logout</string>
     <string name="check_version_update">Check version update…</string>
@@ -51,11 +50,5 @@
     <string name="join_qq_group">Join QQ Group</string>
     <string name="sdks" translatable="false">SDKs</string>
     <string name="close">Close</string>
-    <string name="host_prompt">Host Prompt</string>
-    <string name="tip_host_prompt">Currently in the host environment, you can turn off the host prompt in the menu, and
-        you will no longer be redirected to the host interface!
-    </string>
     <string name="tip">Tip</string>
-    <string name="using_native_prefs">Using native prefs</string>
-    <string name="only_allowed_to_be_set_within_the_module">Only allowed to be set within the module</string>
 </resources>

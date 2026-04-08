@@ -1,9 +1,9 @@
 package com.hujiayucc.hook.hooker.app
 
 import android.widget.LinearLayout
-import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.hujiayucc.hook.annotation.RunJiaGu
-import com.hujiayucc.hook.hooker.util.Base
+import com.hujiayucc.hook.hooker.util.Hooker
+import io.github.libxposed.api.XposedModuleInterface
 
 @RunJiaGu(
     appName = "KOOK",
@@ -13,10 +13,10 @@ import com.hujiayucc.hook.hooker.util.Base
         "1.75.0"
     ]
 )
-object Kook : Base() {
-    override fun onStart() {
-        loadSdk(pangle = true)
-        LinearLayout::class.resolve().firstMethod { name = "onDraw" }
+object Kook : Hooker() {
+    override fun XposedModuleInterface.PackageReadyParam.onPackageReady() {
+        loadSdk(this, pangle = true)
+        LinearLayout::class.java.method("onDraw")
             .hook {
                 after {
                     val layout = instance as LinearLayout

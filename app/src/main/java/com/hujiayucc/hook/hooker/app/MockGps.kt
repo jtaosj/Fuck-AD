@@ -3,9 +3,9 @@ package com.hujiayucc.hook.hooker.app
 import android.os.Handler
 import android.os.Looper
 import android.view.View
-import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.hujiayucc.hook.annotation.Run
-import com.hujiayucc.hook.hooker.util.Base
+import com.hujiayucc.hook.hooker.util.Hooker
+import io.github.libxposed.api.XposedModuleInterface
 
 @Run(
     appName = "MockGps",
@@ -15,11 +15,11 @@ import com.hujiayucc.hook.hooker.util.Base
         "2.6.1"
     ]
 )
-object MockGps : Base() {
-    override fun onStart() {
-        loadSdk(kw = true)
+object MockGps : Hooker() {
+    override fun XposedModuleInterface.PackageReadyParam.onPackageReady() {
+        loadSdk(this, kw = true)
         "androidx.appcompat.widget.AppCompatImageView".toClassOrNull()
-            ?.resolve()?.firstMethod { name = "setImageDrawable" }
+            ?.method("setImageDrawable")
             ?.hook {
                 after {
                     val handler = Handler(Looper.getMainLooper())

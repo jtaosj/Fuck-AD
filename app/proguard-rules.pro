@@ -1,24 +1,8 @@
 -dontobfuscate
--keep class com.hujiayucc.hook.** { *; }
--keep class com.highcapable.yukihookapi.** { *; }
-
+-keep class com.hujiayucc.hook.ModuleMain { *; }
+-keep class * extends com.hujiayucc.hook.annotation.* { *; }
 -dontwarn **
 
 -keepattributes *Annotation*
--keep class com.fasterxml.jackson.databind.** { *; }
--keep class com.fasterxml.jackson.core.** { *; }
--keep class com.fasterxml.jackson.annotation.** { *; }
 -keep class androidx.tracing.** { *; }
 -keep class androidx.core.math.MathUtils { *; }
-
-# 保留 JJWT 相关类
--keep class io.jsonwebtoken.** { *; }
--keep class org.bouncycastle.** { *; }
--keep class org.json.** { *; }
-
-# 保留签名算法实现
--keep class io.jsonwebtoken.impl.** { *; }
-
-# KavaRef
--keepattributes Signature
--keep class com.highcapable.kavaref.extension.TypeRef {*;}

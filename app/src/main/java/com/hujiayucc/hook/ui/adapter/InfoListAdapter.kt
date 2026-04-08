@@ -8,6 +8,7 @@ import android.widget.BaseAdapter
 import android.widget.Filter
 import android.widget.Filterable
 import com.hujiayucc.hook.databinding.ItemInfoBinding
+import io.github.libxposed.service.XposedService
 import java.util.*
 
 class InfoListAdapter(private var componentList: List<ComponentItem>) : BaseAdapter(), Filterable {

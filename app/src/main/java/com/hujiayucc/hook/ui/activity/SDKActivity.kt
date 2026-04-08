@@ -6,7 +6,6 @@ import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.content.pm.PackageManager.NameNotFoundException
 import android.graphics.drawable.Drawable
-import android.os.Build
 import android.os.Bundle
 import android.os.SystemClock
 import android.view.Menu
@@ -17,11 +16,13 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.widget.SearchView
+import androidx.core.content.edit
 import com.hujiayucc.hook.R
 import com.hujiayucc.hook.data.Data.prefsBridge
 import com.hujiayucc.hook.data.Item2
 import com.hujiayucc.hook.databinding.ActivitySdkBinding
 import com.hujiayucc.hook.ui.adapter.AppListAdapter2
+import io.github.libxposed.service.XposedService
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.disposables.CompositeDisposable
@@ -225,7 +226,7 @@ class SDKActivity : BaseActivity<ActivitySdkBinding>() {
 
             try {
                 val jsonStr = prefsBridge.getString("sdkItems", "")
-                if (jsonStr.isNotEmpty()) {
+                if (jsonStr?.isNotEmpty() == true) {
                     val currentInstalled = currentInstalledPackages()
                     val arr = JSONArray(jsonStr)
                     for (i in 0 until arr.length()) {
@@ -252,7 +253,7 @@ class SDKActivity : BaseActivity<ActivitySdkBinding>() {
 
             try {
                 val listStr = prefsBridge.getString("sdkList", "")
-                if (listStr.isNotEmpty()) {
+                if (listStr?.isNotEmpty() == true) {
                     val arr = JSONArray(listStr)
                     for (i in 0 until arr.length()) {
                         val pkg = arr.optString(i)
@@ -364,7 +365,6 @@ class SDKActivity : BaseActivity<ActivitySdkBinding>() {
                 prefsBridge.edit {
                     putString("sdkList", pkgArr.toString())
                     putString("sdkItems", itemArr.toString())
-                    apply()
                 }
             } catch (_: Exception) {
             }
@@ -380,11 +380,7 @@ class SDKActivity : BaseActivity<ActivitySdkBinding>() {
 
     private fun getPackageInfoCompat(packageName: String): PackageInfo {
         val flags = (PackageManager.GET_ACTIVITIES or PackageManager.GET_SERVICES).toLong()
-        return if (Build.VERSION.SDK_INT >= 33) {
-            packageManager.getPackageInfo(packageName, PackageManager.PackageInfoFlags.of(flags))
-        } else {
-            packageManager.getPackageInfo(packageName, flags.toInt())
-        }
+        return packageManager.getPackageInfo(packageName, PackageManager.PackageInfoFlags.of(flags))
     }
 
     private fun extractComponentClassNames(pkgInfo: PackageInfo): Sequence<String> = sequence {
@@ -403,5 +399,9 @@ class SDKActivity : BaseActivity<ActivitySdkBinding>() {
             progressBar.progress = current
             textView.text = "${progressBar.progress}/${progressBar.max}"
         }
+    }
+
+    override fun onServiceStateChanged(service: XposedService?) {
+
     }
 }

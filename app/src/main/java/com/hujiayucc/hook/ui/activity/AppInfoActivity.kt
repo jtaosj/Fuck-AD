@@ -13,6 +13,7 @@ import com.google.android.material.tabs.TabLayoutMediator
 import com.hujiayucc.hook.R
 import com.hujiayucc.hook.databinding.ActivityAppInfoBinding
 import com.hujiayucc.hook.ui.adapter.InfoPagerAdapter
+import io.github.libxposed.service.XposedService
 
 class AppInfoActivity : BaseActivity<ActivityAppInfoBinding>() {
     private lateinit var binding: ActivityAppInfoBinding
@@ -138,5 +139,9 @@ class AppInfoActivity : BaseActivity<ActivityAppInfoBinding>() {
         // 分开 key，避免“旧 Fragment 先消费导致新 Fragment 收不到”的问题
         supportFragmentManager.setFragmentResult(FR_SEARCH_KEY_ACTIVITY, payload)
         supportFragmentManager.setFragmentResult(FR_SEARCH_KEY_SERVICE, payload)
+    }
+
+    override fun onServiceStateChanged(service: XposedService?) {
+
     }
 }

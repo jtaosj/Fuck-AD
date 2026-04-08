@@ -10,16 +10,17 @@ import android.widget.ListView
 import androidx.fragment.app.Fragment
 import com.hujiayucc.hook.databinding.FragmentAppInfoListBinding
 import com.hujiayucc.hook.ui.adapter.InfoListAdapter
+import io.github.libxposed.service.XposedService
 import java.util.*
 
 class InfoListFragment : Fragment() {
     private var _binding: FragmentAppInfoListBinding? = null
     private val binding get() = _binding!!
-    
+
     private lateinit var listView: ListView
     private lateinit var adapter: InfoListAdapter
     private val componentList = ArrayList<InfoListAdapter.ComponentItem>()
-    
+
     private var packageName: String = ""
     private var componentType: InfoListAdapter.ComponentType = InfoListAdapter.ComponentType.ACTIVITY
 
@@ -31,6 +32,7 @@ class InfoListFragment : Fragment() {
         private const val FR_SEARCH_KEY_ACTIVITY = "app_info_search_activity"
         private const val FR_SEARCH_KEY_SERVICE = "app_info_search_service"
         private const val FR_QUERY_KEY = "query"
+
 
         fun newInstance(packageName: String, componentType: InfoListAdapter.ComponentType): InfoListFragment {
             val fragment = InfoListFragment()
@@ -62,7 +64,7 @@ class InfoListFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        
+
         listView = binding.componentList
         adapter = InfoListAdapter(componentList)
         listView.adapter = adapter
@@ -119,6 +121,7 @@ class InfoListFragment : Fragment() {
                         )
                     }
                 }
+
                 InfoListAdapter.ComponentType.SERVICE -> {
                     val services = packageInfo.services ?: emptyArray()
                     services.forEach { serviceInfo ->

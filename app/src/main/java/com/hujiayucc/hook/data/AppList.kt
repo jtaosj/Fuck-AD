@@ -9,7 +9,7 @@ import com.hujiayucc.hook.R
 import com.hujiayucc.hook.annotation.Run
 import com.hujiayucc.hook.annotation.RunJiaGu
 import com.hujiayucc.hook.utils.AnnotationScanner
-import java.util.Locale
+import java.util.*
 
 class AppList(
     private val context: Context
@@ -17,37 +17,27 @@ class AppList(
     val appList: MutableList<Item> = mutableListOf()
 
     init {
+        fun addItem(appName: String, packageName: String, versions: Array<String>, action: String) {
+            val appIcon: Drawable = getAppIcon(packageName)
+            val item = Item(appName, packageName, versions, action, appIcon)
+            appList.add(item)
+        }
+
         AnnotationScanner.scanClassesWithAnnotation(
-            context, "com.hujiayucc.hook.hooker", Run::class.java
+            context, "com.hujiayucc.hook.hooker.app", arrayListOf(Run::class.java, RunJiaGu::class.java)
         ).forEach { clazz ->
             clazz.annotations.forEach { annotation ->
-                if (annotation is Run) {
-                    val appName = annotation.appName
-                    val packageName = annotation.packageName
-                    val versions = annotation.versions
-                    val action = annotation.action
-                    val appIcon: Drawable = getAppIcon(packageName)
-                    val item = Item(appName, packageName, versions, action, appIcon)
-                    appList.add(item)
+                when (annotation) {
+                    is Run -> addItem(annotation.appName, annotation.packageName, annotation.versions, annotation.action)
+                    is RunJiaGu -> addItem(
+                        annotation.appName,
+                        annotation.packageName,
+                        annotation.versions,
+                        annotation.action
+                    )
                 }
             }
         }
-        AnnotationScanner.scanClassesWithAnnotation(
-            context, "com.hujiayucc.hook.hooker", RunJiaGu::class.java
-        ).forEach { clazz ->
-            clazz.annotations.forEach { annotation ->
-                if (annotation is RunJiaGu) {
-                    val appName = annotation.appName
-                    val packageName = annotation.packageName
-                    val versions = annotation.versions
-                    val action = annotation.action
-                    val appIcon: Drawable = getAppIcon(packageName)
-                    val item = Item(appName, packageName, versions, action, appIcon)
-                    appList.add(item)
-                }
-            }
-        }
-        appList.sortWith(compareBy(Collator.getInstance(Locale.CHINA)) { item -> item.appName })
     }
 
     @SuppressLint("UseCompatLoadingForDrawables")

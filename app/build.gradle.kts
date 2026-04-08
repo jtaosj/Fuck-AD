@@ -4,7 +4,6 @@ import java.util.Properties
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.ksp)
 }
 
 android {
@@ -32,10 +31,11 @@ android {
 
     defaultConfig {
         applicationId = "com.hujiayucc.hook"
-        minSdk = 29
+        minSdk = 33
         targetSdk = 36
-        versionCode = 8800
-        versionName = "2.0.8"
+        versionCode = 10000
+        versionName = "3.0.0"
+        buildConfigField("Long", "BUILD_TIME", "${System.currentTimeMillis()}L")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -89,16 +89,8 @@ dependencies {
     implementation(libs.dexkit)
     implementation(project(":FuckAD-Author"))
 
-    // 基础依赖
-    implementation(libs.yuki.api)
-    // ❗作为 Xposed 模块使用务必添加，其它情况可选
-    compileOnly(libs.xposed.api)
-    // ❗作为 Xposed 模块使用务必添加，其它情况可选
-    ksp(libs.ksp.xposed)
-    // 使用 KavaRef 作为核心反射 API
-    implementation(libs.kavaref.core)
-    implementation(libs.kavaref.extension)
-
+    compileOnly(libs.libxposed.api)
+    implementation(libs.libxposed.service)
     compileOnly(libs.ads.sdk.pro)
 
     testImplementation(libs.junit)

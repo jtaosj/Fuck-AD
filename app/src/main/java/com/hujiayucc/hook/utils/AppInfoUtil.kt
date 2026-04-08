@@ -4,8 +4,8 @@ import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.pm.PackageInfo
+import android.util.Log
 import android.view.View
-import com.highcapable.yukihookapi.hook.log.YLog
 
 object AppInfoUtil {
     /** 获取版本名 */
@@ -61,8 +61,7 @@ object AppInfoUtil {
 
     /** 获取包信息 */
     private val Context.packageInfo get() = packageManager.getPackageInfo(packageName, 0)
-    private fun Context.packageInfo(packageName: String) =
-        packageManager.getPackageInfo(packageName, 0)
+    private fun Context.packageInfo(packageName: String) = packageManager.getPackageInfo(packageName, 0)
 
     fun getResourceName(view: View, id: Int): String {
         return try {
@@ -82,7 +81,7 @@ object AppInfoUtil {
                 is Activity -> return context
                 is ContextWrapper -> context = context.baseContext
                 else -> {
-                    YLog.debug("Unexpected context type: ${context::class.java.name}")
+                    Log.d("AppInfoUtil", "Unexpected context type: ${context::class.java.name}")
                     return null
                 }
             }
@@ -90,9 +89,9 @@ object AppInfoUtil {
         }
 
         if (context == null) {
-            YLog.debug("Context became null for view: ${view::class.java.name}")
+            Log.d("AppInfoUtil", "Context became null for view: ${view::class.java.name}")
         } else {
-            YLog.debug("Max depth reached: $maxDepth for view: ${view::class.java.name}")
+            Log.d("AppInfoUtil", "Max depth reached: $maxDepth for view: ${view::class.java.name}")
         }
         return null
     }

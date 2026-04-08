@@ -22,5 +22,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "R-Fuck AD"
+rootProject.name = "Fuck AD"
 include(":app", ":FuckAD-Author")

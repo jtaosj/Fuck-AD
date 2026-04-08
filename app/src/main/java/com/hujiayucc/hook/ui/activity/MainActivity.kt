@@ -6,10 +6,13 @@ import android.app.ActivityManager
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.PackageManager.PERMISSION_GRANTED
-import android.icu.text.SimpleDateFormat
 import android.net.Uri
-import android.os.*
+import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.os.Process
 import android.provider.Settings
+import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
@@ -18,12 +21,9 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.ContextCompat
+import androidx.core.content.edit
 import androidx.core.net.toUri
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.highcapable.yukihookapi.YukiHookAPI
-import com.highcapable.yukihookapi.hook.factory.prefs
-import com.highcapable.yukihookapi.hook.log.YLog
-import com.highcapable.yukihookapi.hook.xposed.prefs.data.PrefsData
 import com.hujiayucc.hook.BuildConfig
 import com.hujiayucc.hook.R
 import com.hujiayucc.hook.author.Author
@@ -36,16 +36,16 @@ import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.schedulers.Schedulers
+import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.system.exitProcess
 
 class MainActivity : BaseActivity<ActivityMainBinding>() {
-
     private lateinit var binding: ActivityMainBinding
     private lateinit var listView: ListView
     private val disposables = CompositeDisposable()
     private lateinit var author: Author
-    private val language = PrefsData("languages", "system")
+    private lateinit var language: String
 
     private val allAppPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         when {
@@ -57,14 +57,21 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        author = Author(this, true, prefsBridge)
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        initializeUI()
-        setupClickListeners()
-        checkPermissions()
-        author.check(binding.mainActiveStatus, binding.mainStatus, BuildConfig.VERSION_CODE)
+    }
+
+    override fun onStart() {
+        super.onStart()
+        Handler(Looper.getMainLooper()).postDelayed({
+            initializeUI()
+            setupClickListeners()
+            checkPermissions()
+            author = Author(this, true, prefsBridge)
+            author.check(binding.mainActiveStatus, binding.mainStatus, BuildConfig.VERSION_CODE)
+            service?.apply { updateFrameworkStatus(frameworkName, apiVersion) }
+        }, 500)
     }
 
     @SuppressLint("SimpleDateFormat")
@@ -79,22 +86,12 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
             )
             mainDate.text = getString(
                 R.string.build_time,
-                SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Date(YukiHookAPI.Status.compiledTimestamp))
+                SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Date(BuildConfig.BUILD_TIME))
             )
             listView = appList
         }
 
-        if (YukiHookAPI.Status.isModuleActive) {
-            updateFrameworkStatus(
-                YukiHookAPI.Status.Executor.name, YukiHookAPI.Status.Executor.apiLevel
-            )
-
-            if (YukiHookAPI.Status.isXposedEnvironment) {
-                MaterialAlertDialogBuilder(this).setTitle(getString(R.string.tip))
-                    .setMessage(getString(R.string.tip_host_prompt)).setCancelable(false)
-                    .setNegativeButton(getString(R.string.close), null).show()
-            }
-        }
+        language = prefsBridge.getString("language", "system") ?: "system"
     }
 
     private fun setupClickListeners() {
@@ -117,18 +114,14 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
     }
 
     private fun checkPermissions() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            when {
-                ContextCompat.checkSelfPermission(
-                    this, Manifest.permission.QUERY_ALL_PACKAGES
-                ) == PERMISSION_GRANTED -> {
-                    loadAppList()
-                }
-
-                shouldShowRequestPermissionRationale(Manifest.permission.QUERY_ALL_PACKAGES) -> showEssentialPermissionRationale()
+        when {
+            ContextCompat.checkSelfPermission(
+                this, Manifest.permission.QUERY_ALL_PACKAGES
+            ) == PERMISSION_GRANTED -> {
+                loadAppList()
             }
-        } else {
-            loadAppList()
+
+            shouldShowRequestPermissionRationale(Manifest.permission.QUERY_ALL_PACKAGES) -> showEssentialPermissionRationale()
         }
     }
 
@@ -145,11 +138,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         MaterialAlertDialogBuilder(this).setTitle(R.string.essential_permission_title)
             .setMessage(R.string.essential_permission_message)
             .setPositiveButton(R.string.understand_and_grant) { _, _ ->
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    allAppPermission.launch(Manifest.permission.QUERY_ALL_PACKAGES)
-                } else {
-                    loadAppList()
-                }
+                allAppPermission.launch(Manifest.permission.QUERY_ALL_PACKAGES)
             }.setNegativeButton(R.string.exit_app) { _, _ ->
                 finish()
                 Handler(Looper.getMainLooper()).postDelayed({
@@ -176,7 +165,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
     }
 
     private fun showDataLoadError(error: Throwable) {
-        YLog.error(getString(R.string.data_load_failed, error.localizedMessage), error)
+        Log.e(TAG, getString(R.string.data_load_failed, error.localizedMessage), error)
         Toast.makeText(
             this, getString(R.string.data_load_failed, error.localizedMessage), Toast.LENGTH_LONG
         ).show()
@@ -209,13 +198,9 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
     }
 
     override fun onPrepareOptionsMenu(menu: Menu): Boolean {
-        updateLanguageSelection(menu, prefsBridge.get(language))
-        menu.findItem(R.id.menu_dump_dex)?.isChecked = prefsBridge.getBoolean("dump")
-        menu.findItem(R.id.menu_click_info)?.isChecked = prefsBridge.getBoolean("clickInfo")
-        menu.findItem(R.id.menu_stack_track)?.isChecked = prefsBridge.getBoolean("stackTrack")
-        menu.findItem(R.id.menu_using_native)?.isChecked =
-            (prefs().native().getBoolean("usingNative", true) || prefs().getBoolean("usingNative", true))
-        menu.findItem(R.id.menu_host_prompt)?.isChecked = prefsBridge.getBoolean("hostPrompt", true)
+        prefsBridge.getString(language, "system")?.let { updateLanguageSelection(menu, it) }
+        menu.findItem(R.id.menu_click_info)?.isChecked = prefsBridge.getBoolean("clickInfo", false)
+        menu.findItem(R.id.menu_stack_track)?.isChecked = prefsBridge.getBoolean("stackTrack", false)
         return super.onPrepareOptionsMenu(menu)
     }
 
@@ -225,8 +210,8 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
     }
 
     private fun saveLanguage(locale: Locale? = null) {
-        locale?.let { prefsBridge.edit().put(language, it.toLanguageTag()).apply() } ?: run {
-            prefsBridge.edit().put(language, "system").commit()
+        locale?.apply { prefsBridge.edit { putString(language, toLanguageTag()) } } ?: run {
+            prefsBridge.edit(commit = true) { putString(language, "system") }
         }
     }
 
@@ -241,7 +226,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
             }
 
             R.id.menu_logout -> {
-                Author(this, prefs = prefsBridge).logout()
+                author.logout()
                 true
             }
 
@@ -254,20 +239,15 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
                 true
             }
 
-            R.id.menu_dump_dex -> {
-                prefsBridge.edit().putBoolean("dump", !item.isChecked).apply()
-                item.isChecked = !item.isChecked
-                true
-            }
 
             R.id.menu_click_info -> {
-                prefsBridge.edit().putBoolean("clickInfo", !item.isChecked).apply()
+                prefsBridge.edit { putBoolean("clickInfo", !item.isChecked) }
                 item.isChecked = !item.isChecked
                 true
             }
 
             R.id.menu_stack_track -> {
-                prefsBridge.edit().putBoolean("stackTrack", !item.isChecked).apply()
+                prefsBridge.edit { putBoolean("stackTrack", !item.isChecked) }
                 item.isChecked = !item.isChecked
                 true
             }
@@ -306,21 +286,6 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
                 true
             }
 
-            R.id.menu_using_native -> {
-                if (packageName != BuildConfig.APPLICATION_ID)
-                    Toast.makeText(
-                        this,
-                        getString(R.string.only_allowed_to_be_set_within_the_module), Toast.LENGTH_SHORT
-                    ).show()
-                else prefs().edit { putBoolean("usingNative", !item.isChecked).apply() }
-                true
-            }
-
-            R.id.menu_host_prompt -> {
-                prefsBridge.edit().putBoolean("hostPrompt", !item.isChecked).apply()
-                true
-            }
-
             else -> super.onOptionsItemSelected(item)
         }
     }
@@ -337,5 +302,9 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         } catch (e: Exception) {
             e.printStackTrace()
         }
+    }
+
+    companion object {
+        const val TAG = "MainActivity"
     }
 }
