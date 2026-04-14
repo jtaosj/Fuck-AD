@@ -39,7 +39,6 @@
     <!-- 選單 -->
     <string name="menu_minimize">最小化</string>
     <string name="menu_click_info">列印點擊事件</string>
-    <string name="menu_dump_dex">匯出Dex</string>
     <string name="menu_stack_track">列印點擊堆疊</string>
     <string name="menu_logout">登出</string>
     <string name="check_version_update">正在檢查更新…</string>
@@ -47,9 +46,6 @@
     <string name="system_language">系統語言</string>
     <string name="join_qq_group">加入QQ群</string>
     <string name="close">關閉</string>
-    <string name="host_prompt">宿主提示</string>
-    <string name="tip_host_prompt">當前為宿主環境，你可以在選單中關閉宿主提示，之後將不會再跳轉宿主介面！</string>
     <string name="tip">提示</string>
-    <string name="using_native_prefs">使用原生 Prefs</string>
-    <string name="only_allowed_to_be_set_within_the_module">僅允許在模組中設置</string>
+    <string name="error_log">錯誤日誌</string>
 </resources>

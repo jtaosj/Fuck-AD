@@ -1,10 +1,9 @@
 package com.hujiayucc.hook.hooker.app
 
 import android.view.View
-import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.hujiayucc.hook.annotation.Run
-import com.hujiayucc.hook.hooker.util.Base
-import de.robv.android.xposed.XposedHelpers
+import com.hujiayucc.hook.hooker.util.Hooker
+import io.github.libxposed.api.XposedModuleInterface
 
 @Run(
     appName = "爱奇艺",
@@ -14,13 +13,13 @@ import de.robv.android.xposed.XposedHelpers
         "16.7.5"
     ]
 )
-object IQiYi : Base() {
-    override fun onStart() {
+object IQiYi : Hooker() {
+    override fun XposedModuleInterface.PackageReadyParam.onPackageReady() {
         "com.qiyi.video.qysplashscreen.ad.g".toClass()
-            .resolve().firstMethod { name = "B1" }
+            .method("B1")
             .hook {
                 after {
-                    val view = XposedHelpers.getObjectField(instance, "t") as View
+                    val view = getField(instance, "t") as View
                     view.performClick()
                 }
             }

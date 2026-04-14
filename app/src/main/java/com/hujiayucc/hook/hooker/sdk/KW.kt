@@ -1,35 +1,28 @@
 package com.hujiayucc.hook.hooker.sdk
 
-import android.os.Handler
-import android.os.Looper
+import android.annotation.SuppressLint
 import android.view.View
-import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
+import com.hujiayucc.hook.hooker.util.Hooker
+import io.github.libxposed.api.XposedModuleInterface
 
 /** 快手 */
-object KW : YukiBaseHooker() {
-    override fun onHook() {
+object KW : Hooker() {
+    @SuppressLint("ResourceType")
+    override fun XposedModuleInterface.PackageReadyParam.onPackageReady() {
         "com.duowan.kiwi.adsplash.view.AdSplashFragment".toClassOrNull()
-            ?.resolve()?.firstMethod { name = "findViews" }
+            ?.methods("findViews")
             ?.hook {
                 after {
-                    runCatching {
-                        val view = (args[0] as View).findViewById<View>(0x7f0923c9)
-                        view.performClick()
-                    }
+                    val view = (chain.args[0] as View).findViewById<View>(0x7f0923c9)
+                    runMain { view.performClick() }
                 }
             }
 
         "com.kwad.components.ad.splashscreen.widget.CircleSkipView".toClassOrNull()
-            ?.resolve()?.method()?.build()?.forEach { method ->
-                method.hook {
-                    after {
-                        val handler = Handler(Looper.getMainLooper())
-                        handler.postDelayed({
-                            val view = instanceOrNull as View?
-                            view?.performClick()
-                        }, 200)
-                    }
+            ?.declaredMethods?.hook {
+                after {
+                    val view = instance<View>()
+                    runMain { view.performClick() }
                 }
             }
     }

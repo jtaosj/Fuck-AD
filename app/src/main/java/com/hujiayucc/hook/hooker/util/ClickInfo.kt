@@ -2,58 +2,47 @@ package com.hujiayucc.hook.hooker.util
 
 import android.view.View
 import android.widget.TextView
-import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import com.highcapable.yukihookapi.hook.log.YLog
-import com.hujiayucc.hook.data.Data.prefsBridge
+import com.hujiayucc.hook.ModuleMain
 import com.hujiayucc.hook.utils.AppInfoUtil
+import io.github.libxposed.api.XposedModuleInterface
 
-object ClickInfo : YukiBaseHooker() {
-    override fun onHook() {
-        val click = appContext?.prefsBridge?.getBoolean("clickInfo")
-        val stackTrack = appContext?.prefsBridge?.getBoolean("stackTrack")
-        if (click == true || stackTrack == true) {
-            View::class.resolve().firstMethod { name = "performClick" }
-                .hook {
-                    before {
-                        if (click == true) printInfo(instance as View)
-                        if (stackTrack == true) printStackTrace(Throwable("堆栈信息"))
-                    }
+object ClickInfo : Hooker() {
+    override fun XposedModuleInterface.PackageReadyParam.onPackageReady() {
+        View::class.java.method("performClick")
+            .hook {
+                before {
+                    if (click) printInfo(instance as View)
+                    if (stackTrack) printStackTrace(Throwable("堆栈信息"))
                 }
+            }
 
-            "android.view.View.DeclaredOnClickListener".toClassOrNull()
-                ?.resolve()?.firstMethod { name = "onClick" }
-                ?.hook {
-                    before {
-                        if (click == true) printInfo(instance as View)
-                        if (stackTrack == true) printStackTrace(Throwable("堆栈信息"))
-                    }
+        "android.view.View.DeclaredOnClickListener".toClassOrNull()
+            ?.method("onClick")
+            ?.hook {
+                before {
+                    if (click) printInfo(instance as View)
+                    if (stackTrack) printStackTrace(Throwable("堆栈信息"))
                 }
-        }
+            }
     }
+
+    val click: Boolean get() = ModuleMain.prefs.getBoolean("clickInfo", false)
+    val stackTrack: Boolean get() = ModuleMain.prefs.getBoolean("stackTrack", false)
 
     private fun printStackTrace(throwable: Throwable) {
-        YLog.info(e = throwable)
+        logD("StackTrace:", throwable)
     }
 
-    @OptIn(ExperimentalStdlibApi::class)
     private fun printInfo(view: View) {
-        val id = view.id
-        val resName: String = AppInfoUtil.getResourceName(view, id)
-        val text = if (view is TextView) view.text.toString() else ""
-
-        // 获取当前 Activity
-        val activity = AppInfoUtil.getActivityFromView(view)
-        val activityName = activity?.javaClass?.name ?: "Unknown"
-
         // 输出完整信息
-        YLog.debug(
+        logD(
             """
                 ====== 点击事件详情 ======
                 View 类: ${view::class.java.name}
-                View ID: 0x${view.id.toHexString()} $resName
-                View 文本: $text
-                所在 Activity: $activityName
+                View 父类：${view.javaClass.superclass?.name ?: "Unknown"}
+                View ID: 0x${view.id.toHexString()} ${AppInfoUtil.getResourceName(view, view.id)}
+                View 文本: ${if (view is TextView) view.text.toString() else ""}
+                所在 Activity: ${AppInfoUtil.getActivityFromView(view)?.javaClass?.name ?: "Unknown"}
             """.trimIndent()
         )
     }

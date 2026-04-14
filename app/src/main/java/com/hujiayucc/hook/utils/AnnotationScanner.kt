@@ -1,56 +1,133 @@
 package com.hujiayucc.hook.utils
 
+import android.annotation.SuppressLint
 import android.content.Context
+import dalvik.system.BaseDexClassLoader
 import dalvik.system.DexFile
-import java.io.IOException
+import java.util.concurrent.ConcurrentHashMap
 
 object AnnotationScanner {
+    private data class CacheKey(
+        val classLoaderIdentity: Int,
+        val targetPackage: String,
+        val annotationNames: String
+    )
+
+    private val classNameCache = ConcurrentHashMap<CacheKey, Set<String>>()
+
     /**
      * 扫描指定包名下包含特定注解的类
      *
      * @param context         上下文
-     * @param targetPackage   要扫描的包名（如："com.hujiayucc.xxx"）
-     * @param annotationClass 要查找的注解类型（如：Annotation.class或Annotation::class.java）
+     * @param targetPackage   要扫描的包名（如："xxx.xxx.xxx"）
+     * @param annotationClasses 要查找的注解类型（如：Annotation.class或Annotation::class.java）
      * @return 包含注解的类集合（Class对象）
      */
     fun scanClassesWithAnnotation(
         context: Context,
         targetPackage: String,
-        annotationClass: Class<out Annotation>
+        annotationClasses: Collection<Class<out Annotation>>
     ): Set<Class<*>> {
-        val result: MutableSet<Class<*>> = HashSet()
-        try {
-            val classLoader = context.classLoader
+        return scanClassesWithAnnotation(context.classLoader, targetPackage, annotationClasses)
+    }
 
-            val apkPath = context.applicationInfo.sourceDir
-            val dexFile = DexFile.loadDex(apkPath, null, 0)
+    /**
+     * 扫描指定包名下包含特定注解的类
+     *
+     * @param classLoader     类加载器
+     * @param targetPackage   要扫描的包名（如："xxx.xxx.xxx"）
+     * @param annotationClasses 要查找的注解类型（如：Annotation.class或Annotation::class.java）
+     * @return 包含注解的类集合（Class对象）
+     */
+    fun scanClassesWithAnnotation(
+        classLoader: ClassLoader,
+        targetPackage: String,
+        annotationClasses: Collection<Class<out Annotation>>
+    ): Set<Class<*>> {
+        if (annotationClasses.isEmpty()) return emptySet()
 
+        val annotationNameSet = annotationClasses.asSequence()
+            .map { it.name }
+            .toSet()
+        val annotationKey = annotationNameSet.asSequence()
+            .sorted()
+            .joinToString(separator = "|")
+        val cacheKey = CacheKey(System.identityHashCode(classLoader), targetPackage, annotationKey)
+
+        classNameCache[cacheKey]?.let { cachedClassNames ->
+            return loadClassesByName(classLoader, cachedClassNames)
+        }
+
+        val matchedClasses = scanMatchedClasses(classLoader, targetPackage, annotationNameSet)
+        classNameCache[cacheKey] = matchedClasses.asSequence().map { it.name }.toCollection(LinkedHashSet())
+        return matchedClasses
+    }
+
+    @Suppress("DEPRECATION")
+    private fun scanMatchedClasses(
+        classLoader: ClassLoader,
+        targetPackage: String,
+        annotationNames: Set<String>
+    ): Set<Class<*>> {
+        val result = LinkedHashSet<Class<*>>()
+        extractDexFiles(classLoader).forEach { dexFile ->
             val entries = dexFile.entries()
             while (entries.hasMoreElements()) {
                 val className = entries.nextElement()
-
                 if (!className.startsWith(targetPackage)) continue
 
-                try {
-                    val clazz = Class.forName(className, false, classLoader)
-
-                    if (clazz.isAnnotationPresent(annotationClass)) {
-                        result.add(clazz)
-                    }
-
-                    for (constructor in clazz.declaredConstructors) {
-                        if (constructor.isAnnotationPresent(annotationClass)) {
-                            result.add(clazz)
-                            break
-                        }
-                    }
-                } catch (_: Exception) {
-                }
+                val clazz = loadClassOrNull(classLoader, className) ?: continue
+                if (clazz.hasAnyTargetAnnotation(annotationNames)) result.add(clazz)
             }
-            dexFile.close()
-        } catch (e: IOException) {
-            throw RuntimeException("Dex文件扫描失败", e)
         }
         return result
+    }
+
+    private fun loadClassesByName(classLoader: ClassLoader, classNames: Set<String>): Set<Class<*>> {
+        val result = LinkedHashSet<Class<*>>(classNames.size)
+        classNames.forEach { className ->
+            loadClassOrNull(classLoader, className)?.let { result.add(it) }
+        }
+        return result
+    }
+
+    private fun loadClassOrNull(classLoader: ClassLoader, className: String): Class<*>? {
+        return try {
+            Class.forName(className, false, classLoader)
+        } catch (_: Throwable) {
+            null
+        }
+    }
+
+    private fun Class<*>.hasAnyTargetAnnotation(annotationNames: Set<String>): Boolean {
+        if (annotations.any { it.annotationClass.java.name in annotationNames }) return true
+        return declaredConstructors.any { constructor ->
+            constructor.annotations.any { it.annotationClass.java.name in annotationNames }
+        }
+    }
+
+    private fun extractDexFiles(classLoader: ClassLoader): List<DexFile> {
+        if (classLoader !is BaseDexClassLoader) {
+            return emptyList()
+        }
+        return try {
+            @SuppressLint("DiscouragedPrivateApi")
+            val pathListField = BaseDexClassLoader::class.java.getDeclaredField("pathList").apply {
+                isAccessible = true
+            }
+            val dexPathList = pathListField.get(classLoader)
+            val dexElementsField = dexPathList.javaClass.getDeclaredField("dexElements").apply {
+                isAccessible = true
+            }
+            val dexElements = dexElementsField.get(dexPathList) as Array<*>
+            dexElements.mapNotNull { element ->
+                val dexFileField = element?.javaClass?.getDeclaredField("dexFile")?.apply {
+                    isAccessible = true
+                } ?: return@mapNotNull null
+                dexFileField.get(element) as? DexFile
+            }
+        } catch (_: Throwable) {
+            emptyList()
+        }
     }
 }

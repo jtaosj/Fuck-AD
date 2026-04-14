@@ -32,10 +32,6 @@
         </menu>
     </item>
     <item
-            android:id="@+id/menu_dump_dex"
-            android:title="@string/menu_dump_dex"
-            android:checkable="true" />
-    <item
             android:id="@+id/menu_click_info"
             android:title="@string/menu_click_info"
             android:checkable="true" />
@@ -45,17 +41,12 @@
             android:checkable="true" />
 
     <item
+            android:id="@+id/menu_error_log"
+            android:title="@string/error_log"
+            android:checkable="true"/>
+
+    <item
             android:id="@+id/menu_sdk"
             android:title="@string/sdks"
             app:showAsAction="always" />
-
-    <item
-            android:id="@+id/menu_using_native"
-            android:title="@string/using_native_prefs"
-            android:checkable="true" />
-
-    <item
-            android:id="@+id/menu_host_prompt"
-            android:title="@string/host_prompt"
-            android:checkable="true"/>
 </menu>

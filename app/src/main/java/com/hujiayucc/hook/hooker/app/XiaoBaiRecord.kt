@@ -1,22 +1,19 @@
 package com.hujiayucc.hook.hooker.app
 
-import android.app.Application
-import android.content.Context
-import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.hujiayucc.hook.annotation.Run
-import com.hujiayucc.hook.hooker.util.Base
+import com.hujiayucc.hook.annotation.RunJiaGu
+import com.hujiayucc.hook.hooker.util.Hooker
+import io.github.libxposed.api.XposedModuleInterface
 import org.luckypray.dexkit.DexKitBridge
 import org.luckypray.dexkit.query.enums.StringMatchType
 
-@Run(
+@RunJiaGu(
     appName = "小白录屏",
     packageName = "com.xiaobai.screen.record",
     action = "解锁会员"
 )
-object XiaoBaiRecord : Base() {
-    override fun onStart() {
-        val boolMap = emptyMap<String, String>().toMutableMap()
-        DexKitBridge.create(appInfo.sourceDir).use { bridge ->
+object XiaoBaiRecord : Hooker() {
+    override fun XposedModuleInterface.PackageReadyParam.onPackageReady() {
+        DexKitBridge.create(applicationInfo.sourceDir).use { bridge ->
             // 设置会员
             bridge.findMethod {
                 // com.dream.era.global.cn.network.SettingsManager.d()
@@ -25,6 +22,8 @@ object XiaoBaiRecord : Base() {
                     returnType = "boolean"
                     addUsingString("key_debug_force_vip", StringMatchType.Equals)
                 }
+            }.forEach { method ->
+                method.getMethodInstance(classLoader).hook { replaceTo(true) }
             }
 
             // 免登录
@@ -35,17 +34,10 @@ object XiaoBaiRecord : Base() {
                     name = "isLogin"
                     returnType = "boolean"
                 }
+            }.forEach { method ->
+                method.getMethodInstance(classLoader).hook { replaceTo(true) }
             }
             bridge.close()
-        }
-
-        Application::class.resolve().firstMethod { name = "attach" }.hook {
-            before {
-                for ((className, methodName) in boolMap) {
-                    className.toClassOrNull((args[0] as Context).classLoader)?.resolve()?.firstMethod { name = methodName }
-                        ?.hook { replaceTo(true) }?.ignoredAllFailure()
-                }
-            }
         }
     }
 }

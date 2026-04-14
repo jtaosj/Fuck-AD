@@ -1,17 +1,15 @@
 package com.hujiayucc.hook.hooker.sdk
 
-import com.highcapable.kavaref.KavaRef.Companion.resolve
-import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
+import com.hujiayucc.hook.hooker.util.Hooker
+import io.github.libxposed.api.XposedModuleInterface
 
 /** 广电通 */
-object GDT: YukiBaseHooker() {
-    override fun onHook() {
-        $$"com.qq.e.comm.managers.plugin.PM$a".toClassOrNull()
-            ?.resolve()?.firstMethod { name = "call" }
-            ?.hook { replaceTo(null) }
-
-        $$"com.qq.e.comm.managers.plugin.PM$a".toClassOrNull()
-            ?.resolve()?.firstMethod { name = "a" }
-            ?.hook { replaceToFalse() }
+object GDT : Hooker() {
+    override fun XposedModuleInterface.PackageReadyParam.onPackageReady() {
+        $$"com.qq.e.comm.managers.plugin.PM$a".toClassOrNull()?.method("a")?.hook {
+            before {
+                result = false
+            }
+        }
     }
 }

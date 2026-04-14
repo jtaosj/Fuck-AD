@@ -1,12 +1,13 @@
 package com.hujiayucc.hook.hooker.app
 
+import android.annotation.SuppressLint
 import android.os.Handler
 import android.os.Looper
 import android.view.View
-import com.highcapable.kavaref.KavaRef.Companion.resolve
+import android.widget.TextView
 import com.hujiayucc.hook.annotation.Run
-import com.hujiayucc.hook.hooker.util.Base
-import de.robv.android.xposed.XposedHelpers
+import com.hujiayucc.hook.hooker.util.Hooker
+import io.github.libxposed.api.XposedModuleInterface
 
 @Run(
     appName = "哔哩哔哩",
@@ -16,18 +17,28 @@ import de.robv.android.xposed.XposedHelpers
         "8.54.0"
     ]
 )
-object Bilibili : Base() {
-    override fun onStart() {
-        if (versionName == "8.54.0")
-            "tv.danmaku.bili.ui.splash.ad.page.FullImageSplash".toClassOrNull()
-                ?.resolve()?.firstMethod { name = "y6" }
-                ?.hook {
-                    after {
-                        val view = XposedHelpers.getObjectField(instance, "v") as View
-                        Handler(Looper.getMainLooper()).postDelayed({
-                            view.performClick()
-                        }, 100)
+object Bilibili : Hooker() {
+    @SuppressLint("ResourceType")
+    override fun XposedModuleInterface.PackageReadyParam.onPackageReady() {
+        "tv.danmaku.bili.ui.splash.ad.page.FullImageSplash".toClassOrNull()
+            ?.methods("y6")
+            ?.hook {
+                after {
+                    val view = getField(instance(), "v") as View
+                    runMainDelayed(100) {
+                        view.performClick()
                     }
                 }
+            }
+
+        "androidx.appcompat.widget.AppCompatTextView".toClassOrNull()
+            ?.methods("setTextSize")?.hook {
+                after {
+                    val view = instance<TextView>()
+                    if (view.id == 0x7f090ca8) {
+                        runMain { view.performClick() }
+                    }
+                }
+            }
     }
 }
