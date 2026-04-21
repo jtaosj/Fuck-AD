@@ -1,12 +1,12 @@
 package com.hujiayucc.hook.hooker.app
 
-import com.hujiayucc.hook.annotation.RunJiaGu
+import com.hujiayucc.hook.annotation.Run
 import com.hujiayucc.hook.hooker.util.Hooker
 import io.github.libxposed.api.XposedModuleInterface
 import org.luckypray.dexkit.DexKitBridge
 import org.luckypray.dexkit.query.enums.StringMatchType
 
-@RunJiaGu(
+@Run(
     appName = "小白录屏",
     packageName = "com.xiaobai.screen.record",
     action = "解锁会员"
